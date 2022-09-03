@@ -17,15 +17,15 @@ class Randomness
 {
 private:	
 	// TODO Use mt19937_64 ?
-	static std::mt19937 mt19937Generator;
+	std::mt19937 mt19937Generator;
 
 public:
-	static RandomGenerator getRandomGenerator()
+	RandomGenerator getRandomGenerator()
 	{
 		return RandomGenerator(&mt19937Generator);
 	}
 	
-	static void initialize(uint_fast32_t seed)
+	Randomness(uint_fast32_t seed)
 	{
 		mt19937Generator = std::mt19937(seed);
 	}

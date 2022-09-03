@@ -31,7 +31,7 @@ namespace CluE
  * the sum and the squared sum of the subset's points are stored as key features
  * of each subset. Points are inserted into exactly one node.
  * A detailed description of BICO can be found here:
- * * Hendrik Fichtenberger, Marc Gillé, Melanie Schmidt, Chris Schwiegelshohn,
+ * * Hendrik Fichtenberger, Marc GillÃ©, Melanie Schmidt, Chris Schwiegelshohn,
  *   Christian Sohler: BICO: BIRCH Meets Coresets for k-Means Clustering.
  *   ESA 2013: 481-492
  * In this implementation, the nearest neighbour search on the first level
@@ -140,7 +140,7 @@ private:
                 int bucket_min = bucket_number;
                 int mins;
 
-                if ((bucket_number < 0) || (bucket_number > outer.buckets[0].size() - 1))
+                if ((bucket_number < 0) || (bucket_number >= outer.buckets[0].size()))
                 {
                     // The bucket does not exist (yet)
                     mins = 0;
@@ -153,9 +153,9 @@ private:
                     {
                         val = outer.project(element, i);
                         bucket_number = outer.calcBucketNumber(i, val);
-                        if ((bucket_number >= 0) & (bucket_number <= outer.buckets[i].size() - 1))
+                        if ((bucket_number >= 0) && (bucket_number < outer.buckets[i].size()))
                         {
-                            int s = outer.buckets[i][bucket_number].size();
+                            size_t s = outer.buckets[i][bucket_number].size();
                             if (s < mins)
                             {
                                 mins = s;
@@ -182,7 +182,7 @@ private:
                     // Bucket does not exist => create one
                     outer.allocateBucket(rnd, true);
                 }
-                else if (bucket_number > outer.buckets[rnd].size() - 1)
+                else if (bucket_number >= outer.buckets[rnd].size())
                 {
                     // Bucket does not exist => create one
                     outer.allocateBucket(rnd, false);
@@ -292,9 +292,10 @@ public:
      * @param nMax Maximum coreset size
      * @param measure Implementation of the squared L2 metric for T
      * @param weightModifier Class to read and modify weight of T
+     * @param seed RNG random seed
      */
     Bico(size_t dimension, size_t n, size_t k, size_t p, size_t nMax,
-         DissimilarityMeasure<T>* measure, WeightModifier<T>* weightModifier);
+         DissimilarityMeasure<T>* measure, WeightModifier<T>* weightModifier, uint_fast32_t seed);
 
     /**
      * @brief Returns a coreset of all point read so far
@@ -487,10 +488,13 @@ private:
      * @brief Current number of rebuilding
      */
     int numOfRebuilds;
+
+    double minDist;
+    size_t pairwise_different;
 };
 
 template<typename T> Bico<T>::Bico(size_t dim, size_t n, size_t k, size_t p, size_t nMax,
-                                   DissimilarityMeasure<T>* measure, WeightModifier<T>* weightModifier) :
+                                   DissimilarityMeasure<T>* measure, WeightModifier<T>* weightModifier, uint_fast32_t seed) :
 nodeIdCounter(0),
 measure(measure->clone()),
 weightModifier(weightModifier->clone()),
@@ -505,7 +509,11 @@ numOfRebuilds(0),
 buffer(),
 dimension(dim)
 {
-    RandomGenerator rg = Randomness::getRandomGenerator();
+    minDist = std::numeric_limits<double>::infinity();
+    pairwise_different = 0;
+  
+    Randomness r(seed);
+    RandomGenerator rg = r.getRandomGenerator();
     std::vector<double> rndpoint(dimension);
     rndprojections.resize(L);
     bucket_radius.resize(L);
@@ -514,7 +522,7 @@ dimension(dim)
     std::normal_distribution<double> realDist(0.0, 1.0);
     for (int i = 0; i < L; i++)
     {
-        maxVal[i] = -1;
+        maxVal[i] = -INFINITY;
         norm = 0.0;
         for (int j = 0; j < dimension; j++)
         {
@@ -602,9 +610,9 @@ template<typename T> double Bico<T>::project(T point, int i)
 template<typename T> ProxySolution<T>* Bico<T>::compute()
 {
     ProxySolution<T>* result = new ProxySolution<T>();
-    result->proxysets.push_back(std::vector<T>());
-    result->proxysets[0].reserve(curNumOfCFs);
-    computeTraverse(root, result);
+        result->proxysets.push_back(std::vector<T>());
+        result->proxysets[0].reserve(curNumOfCFs);
+        computeTraverse(root, result);
     return result;
 }
 
@@ -623,8 +631,6 @@ template<typename T> Bico<T>& Bico<T>::operator<<(T const & element)
 {
     if (bufferPhase)
     {
-        static double minDist = std::numeric_limits<double>::infinity();
-        static size_t pairwise_different = 0;
         // Find nearest neighbor
         for (size_t i = 0; i < buffer.size(); ++i)
         {
@@ -632,19 +638,20 @@ template<typename T> Bico<T>& Bico<T>::operator<<(T const & element)
             if (tmpDist > 0)
             {
                 ++pairwise_different;
-                if (tmpDist < minDist)
+                if (tmpDist < this->minDist)
                     minDist = tmpDist;
             }
-            for (int i = 0; i < L; i++)
-            {
-                double val = std::abs(project(element, i));
-                if (val > maxVal[i] || maxVal[i] == -1)
-                {
-                    maxVal[i] = val;
-                }
-            }
-
         }
+
+        for (int i = 0; i < L; i++)
+        {
+            double val = std::abs(project(element, i));
+            if (val > maxVal[i] || maxVal[i] == -INFINITY)
+            {
+                maxVal[i] = val;
+            }
+        }
+
         buffer.push_back(element);
 
         // Enough pairwise different elements to estimate optimal cost?
@@ -706,9 +713,9 @@ template<typename T> void Bico<T>::insert(BicoNode* node, int level, T const & e
                         bucket_number = calcBucketNumber(i, val);
                     }
                 }
-                else if (bucket_number > buckets[i].size() - 1)
+                else if (bucket_number >= buckets[i].size())
                 {
-                    while (bucket_number > buckets[i].size() - 1)
+                    while (bucket_number >= buckets[i].size())
                     {
                         allocateBucket(i, false);
                         bucket_number = calcBucketNumber(i, val);
@@ -793,11 +800,11 @@ template<typename T> void Bico<T>::rebuildFirstLevel(BicoNode* parent, BicoNode*
                     {
                         allocateBucket(i, true);
                         bucket_number = calcBucketNumber(i, val);
-                    }
+        }
                 }
-                else if (bucket_number > buckets[i].size() - 1)
+                else if (bucket_number >= buckets[i].size())
                 {
-                    while (bucket_number > buckets[i].size() - 1)
+                    while (bucket_number >= buckets[i].size())
                     {
                         allocateBucket(i, false);
                         bucket_number = calcBucketNumber(i, val);

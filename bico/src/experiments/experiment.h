@@ -205,7 +205,7 @@ public:
         // Skip the last attribute because it is the label attribute
         // StreamKM++ paper removed the classification attribute so 
         // in total they have 54 attributes.
-        for (size_t i = 0; i < stringcoords.size() - 1; ++i)
+        for (size_t i = 0; i <= stringcoords.size(); ++i)
             result.push_back(atof(stringcoords[i].c_str()));
     }
 };

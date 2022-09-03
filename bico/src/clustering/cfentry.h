@@ -36,7 +36,7 @@ template<typename T> struct CFEntry
 	 */
 	double SS;
 	
-	const bool isWeighted;
+	/*gli MT safety const*/ bool isWeighted;
 	
 	CFEntry(size_t number, T ls, double ss);
 	
