@@ -19,6 +19,8 @@
 #include "src/point/pointweightmodifier.h"
 #include "src/point/realspaceprovider.h"
 
+#ifndef BICO_DLL
+
 int main(int argc, char **argv)
 {
     using namespace CluE;
@@ -109,3 +111,5 @@ int main(int argc, char **argv)
 
     return 0;
 }
+
+#endif

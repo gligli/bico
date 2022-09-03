@@ -6,7 +6,7 @@ ifndef config
 endif
 export config
 
-PROJECTS := CluE BICO_Experiments BICO_Quickstart
+PROJECTS := CluE BICO_Experiments BICO_Quickstart BICO_DLL
 
 .PHONY: all clean help $(PROJECTS)
 
@@ -24,10 +24,15 @@ BICO_Quickstart: CluE
 	@echo "==== Building BICO_Quickstart ($(config)) ===="
 	@${MAKE} --no-print-directory -C . -f BICO_Quickstart.make
 
+BICO_DLL: CluE
+	@echo "==== Building BICO_DLL ($(config)) ===="
+	@${MAKE} --no-print-directory -C . -f BICO_DLL.make
+
 clean:
 	@${MAKE} --no-print-directory -C . -f CluE.make clean
 	@${MAKE} --no-print-directory -C . -f BICO_Experiments.make clean
 	@${MAKE} --no-print-directory -C . -f BICO_Quickstart.make clean
+	@${MAKE} --no-print-directory -C . -f BICO_DLL.make clean
 
 help:
 	@echo "Usage: make [config=name] [target]"
@@ -41,5 +46,6 @@ help:
 	@echo "   CluE"
 	@echo "   BICO_Experiments"
 	@echo "   BICO_Quickstart"
+	@echo "   BICO_DLL"
 	@echo ""
 	@echo "For more information, see http://industriousone.com/premake/quick-start"
