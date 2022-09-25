@@ -1,3 +1,7 @@
+#ifdef _MSC_VER
+	#include "oneapi/tbb/tbbmalloc_proxy.h"
+#endif
+
 #include <iostream>
 #include <sstream>
 #include <fstream>
@@ -33,8 +37,6 @@ class api_ptr_t {
 extern "C"
 {
 #ifdef _MSC_VER
-	#include "oneapi/tbb/tbbmalloc_proxy.h"
-
 	#define DLL_API __declspec(dllexport)
 
 	#define API_FP_PRE() \
