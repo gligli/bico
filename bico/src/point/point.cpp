@@ -3,6 +3,7 @@
 #include "../exception/invalidargumentexception.h"
 #include "../exception/invalidruntimeconfigurationexception.h"
 
+#include "pmmintrin.h"
 #include <math.h>
 #include <iostream>
 #include <numeric>
@@ -10,6 +11,52 @@
 #include <algorithm>
 
 using namespace CluE;
+
+__declspec(noinline) static const double euclidean_baseline_double(const int n, const double* x, const double* y) {
+	double result = 0.f;
+	for (int i = 0; i < n; ++i) {
+		const double num = x[i] - y[i];
+		result += num * num;
+	}
+	return result;
+}
+
+static const double euclidean_intrinsic_double(int n, const double* x, const double* y) {
+	__m128d euclidean0 = _mm_setzero_pd();
+	__m128d euclidean1 = _mm_setzero_pd();
+
+	for (; n > 3; n -= 4) {
+		const __m128d a0 = _mm_loadu_pd(x);
+		x += 2;
+		const __m128d a1 = _mm_loadu_pd(x);
+		x += 2;
+
+		const __m128d b0 = _mm_loadu_pd(y);
+		y += 2;
+		const __m128d b1 = _mm_loadu_pd(y);
+		y += 2;
+
+		const __m128d a0_minus_b0 = _mm_sub_pd(a0, b0);
+		const __m128d a1_minus_b1 = _mm_sub_pd(a1, b1);
+
+		const __m128d a0_minus_b0_sq = _mm_mul_pd(a0_minus_b0, a0_minus_b0);
+		const __m128d a1_minus_b1_sq = _mm_mul_pd(a1_minus_b1, a1_minus_b1);
+
+		euclidean0 = _mm_add_pd(euclidean0, a0_minus_b0_sq);
+		euclidean1 = _mm_add_pd(euclidean1, a1_minus_b1_sq);
+	}
+
+	const __m128d euclidean = _mm_add_pd(euclidean0, euclidean1);
+
+	const __m128d sum = _mm_hadd_pd(euclidean, euclidean);
+
+	double result = sum.m128d_f64[0];
+
+	if (n)
+		result += euclidean_baseline_double(n, x, y);	// remaining 1-3 entries
+
+	return result;
+}
 
 Point::Point(std::vector<Point*> const& v)
 {
@@ -105,6 +152,8 @@ double Point::squaredL2distance(Point const& p) const
 	size_t d = this->dimension();
 	if(p.dimension() != d)
 		throw InvalidArgumentException(0, "Incompatible dimensions!", "p");
+
+	return euclidean_intrinsic_double(d, p.coordinates._Unchecked_begin(), this->coordinates._Unchecked_begin());
 
 	double sum = 0;
 	for(unsigned int i=0; i<d; ++i)
