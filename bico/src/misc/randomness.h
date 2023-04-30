@@ -27,7 +27,7 @@ public:
 	
 	Randomness(uint_fast32_t seed)
 	{
-		mt19937Generator = std::mt19937(seed);
+		mt19937Generator.seed(seed);
 	}
 };
 
