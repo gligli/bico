@@ -131,7 +131,7 @@ private:
         {
             typename FeatureList::iterator minIt = features.end();
             // Nearest neighbour search based on projections in level 1
-            if (level == 1)
+            if (level == 1 && outer.L > 0)
             {
                 // Project point and calculate projection bucket number
                 double val = outer.project(element, 0);
