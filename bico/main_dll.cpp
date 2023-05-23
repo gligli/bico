@@ -1,7 +1,3 @@
-#ifdef _MSC_VER
-	#include "oneapi/tbb/tbbmalloc_proxy.h"
-#endif
-
 #include <iostream>
 #include <sstream>
 #include <fstream>
