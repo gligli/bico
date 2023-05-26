@@ -191,15 +191,33 @@ private:
                 {
                     // Bucket does exist => search nearest point in bucket
                     double minDist = -1;
+                    std::vector<T*> prm_buf;
+                    std::vector<double> dissim_buf;
+
+                    prm_buf.reserve(outer.buckets[rnd][bucket_number].size());
+                    dissim_buf.reserve(outer.buckets[rnd][bucket_number].size());
 
                     for (auto it = outer.buckets[rnd][bucket_number].begin(); it != outer.buckets[rnd][bucket_number].end(); ++it)
                     {
-                        double tmpDist = outer.measure->dissimilarity((*it)->first.representative, element);
+                        prm_buf.push_back(&(*it)->first.representative);
+                    }
+
+                    #pragma omp parallel for
+                    for (intptr_t i = 0; i < prm_buf.size(); ++i)
+                    {
+                        dissim_buf[i] = outer.measure->dissimilarity(*prm_buf[i], element);
+                    }
+
+                    intptr_t pos = 0;
+                    for (auto it = outer.buckets[rnd][bucket_number].begin(); it != outer.buckets[rnd][bucket_number].end(); ++it)
+                    {
+                        double tmpDist = dissim_buf[pos];
                         if (tmpDist < minDist || minDist == -1)
                         {
                             minDist = tmpDist;
                             minIt = (*it);
                         }
+                        ++pos;
                     }
 
                 }
@@ -208,14 +226,33 @@ private:
             else
             {
                 double minDist = -1;
+                std::vector<T*> prm_buf;
+                std::vector<double> dissim_buf;
+
+                prm_buf.reserve(features.size());
+                dissim_buf.reserve(features.size());
+
                 for (auto it = features.begin(); it != features.end(); ++it)
                 {
-                    double tmpDist = outer.measure->dissimilarity(it->first.representative, element);
+                    prm_buf.push_back(&it->first.representative);
+                }
+
+                #pragma omp parallel for
+                for (intptr_t i = 0; i < prm_buf.size(); ++i)
+                {
+                    dissim_buf[i] = outer.measure->dissimilarity(*prm_buf[i], element);
+                }
+
+                intptr_t pos = 0;
+                for (auto it = features.begin(); it != features.end(); ++it)
+                {
+                    double tmpDist = dissim_buf[pos];
                     if (tmpDist < minDist || minDist == -1)
                     {
                         minDist = tmpDist;
                         minIt = it;
                     }
+                    ++pos;
                 }
             }
 
@@ -632,9 +669,19 @@ template<typename T> Bico<T>& Bico<T>::operator<<(T const & element)
     if (bufferPhase)
     {
         // Find nearest neighbor
-        for (size_t i = 0; i < buffer.size(); ++i)
+
+        std::vector<double> dissim_buf;
+        dissim_buf.reserve(buffer.size());
+
+        #pragma omp parallel for
+        for (intptr_t i = 0; i < buffer.size(); ++i)
         {
-            double tmpDist = measure->dissimilarity(buffer[i], element);
+            dissim_buf[i] = measure->dissimilarity(buffer[i], element);
+        }
+
+        for (intptr_t i = 0; i < buffer.size(); ++i)
+        {
+            double tmpDist = dissim_buf[i];
             if (tmpDist > 0)
             {
                 ++pairwise_different;

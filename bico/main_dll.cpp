@@ -6,6 +6,7 @@
 #include <time.h>
 
 #include <boost/algorithm/string.hpp>
+#include <omp.h>
 
 #include "src/point/l2metric.h"
 #include "src/point/squaredl2metric.h"
@@ -76,6 +77,15 @@ extern "C"
 		delete ab->bico;
 		delete ab->sol;
 		delete ab;
+
+		API_FP_POST();
+	}
+
+	DLL_API void __stdcall bico_set_num_threads(int32_t num_threads)
+	{
+		API_FP_PRE();
+
+		omp_set_num_threads(num_threads);
 
 		API_FP_POST();
 	}
