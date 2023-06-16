@@ -499,6 +499,7 @@ private:
     /**
      * @brief Current estimation of the optimal clustering cost
      */
+    double optEst_mul;
     double optEst;
 
     /**
@@ -540,6 +541,7 @@ curNumOfCFs(0),
 k(k),
 L(p),
 optEst(-1),
+optEst_mul(2.0),
 root(new BicoNode(*this)),
 bufferPhase(true),
 numOfRebuilds(0),
@@ -646,6 +648,13 @@ template<typename T> double Bico<T>::project(T point, int i)
 
 template<typename T> ProxySolution<T>* Bico<T>::compute()
 {
+    // Rebuild up to k clusters (gli)
+    optEst_mul = 1.05;
+    while (curNumOfCFs > k)
+    {
+        rebuild();
+    }
+
     ProxySolution<T>* result = new ProxySolution<T>();
         result->proxysets.push_back(std::vector<T>());
         result->proxysets[0].reserve(curNumOfCFs);
@@ -818,7 +827,7 @@ template<typename T> void Bico<T>::rebuild()
 
 template<typename T> void Bico<T>::rebuildFirstLevel(BicoNode* parent, BicoNode* child)
 {
-    optEst *= 2.0;
+    optEst *= optEst_mul;
     ++numOfRebuilds;
 
     buildBuckets();
