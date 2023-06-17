@@ -355,6 +355,8 @@ public:
      */
     void print(std::ostream& os);
 
+    void setRebuildProperties(size_t interval, double initial, double grow);
+
 private:
     /**
      * @brief Inserts an element into a BicoNode at a certain level
@@ -499,8 +501,12 @@ private:
     /**
      * @brief Current estimation of the optimal clustering cost
      */
-    double optEst_mul;
     double optEst;
+
+    double optEst_initial;
+    double optEst_grow;
+    size_t rebuildInterval;
+    size_t rebuildPos;
 
     /**
      * @brief Extreme values used for constructing the nearest neighbour buckets
@@ -541,7 +547,10 @@ curNumOfCFs(0),
 k(k),
 L(p),
 optEst(-1),
-optEst_mul(2.0),
+optEst_initial(16.0),
+optEst_grow(2.0),
+rebuildInterval(1),
+rebuildPos(0),
 root(new BicoNode(*this)),
 bufferPhase(true),
 numOfRebuilds(0),
@@ -649,7 +658,6 @@ template<typename T> double Bico<T>::project(T point, int i)
 template<typename T> ProxySolution<T>* Bico<T>::compute()
 {
     // Rebuild up to k clusters (gli)
-    optEst_mul = 1.05;
     while (curNumOfCFs > k)
     {
         rebuild();
@@ -713,7 +721,7 @@ template<typename T> Bico<T>& Bico<T>::operator<<(T const & element)
         // Enough pairwise different elements to estimate optimal cost?
         if (pairwise_different >= maxNumOfCFs + 1)
         {
-            optEst = 16.0 * minDist;
+            optEst = optEst_initial * minDist;
             int radius = (int) ceil(sqrt(getR(1)));
             borders.resize(L);
             for (int i = 0; i < L; i++)
@@ -805,9 +813,14 @@ template<typename T> void Bico<T>::insert(BicoNode* node, int level, T const & e
     }
 
     // Rebuild?
-    while (curNumOfCFs > maxNumOfCFs)
+    if (++rebuildPos >= rebuildInterval)
     {
-        rebuild();
+        rebuildPos = 0;
+        
+        while (curNumOfCFs > maxNumOfCFs)
+        {
+            rebuild();
+        }
     }
 }
 
@@ -827,7 +840,7 @@ template<typename T> void Bico<T>::rebuild()
 
 template<typename T> void Bico<T>::rebuildFirstLevel(BicoNode* parent, BicoNode* child)
 {
-    optEst *= optEst_mul;
+    optEst *= optEst_grow;
     ++numOfRebuilds;
 
     buildBuckets();
@@ -974,6 +987,15 @@ template<typename T> void Bico<T>::print(std::ostream& os, BicoNode* node)
         fvalue++;
     }
 }
+
+template<typename T> void Bico<T>::setRebuildProperties(size_t interval, double initial, double grow)
+{
+  rebuildInterval = interval;
+  rebuildPos = 0;
+  optEst_initial = initial;
+  optEst_grow = grow;
+}
+
 
 }
 

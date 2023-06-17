@@ -90,6 +90,17 @@ extern "C"
 		API_FP_POST();
 	}
 
+	DLL_API void __stdcall bico_set_rebuild_properties(void* bico, uint32_t interval, double initial, double grow)
+	{
+		API_FP_PRE();
+
+		api_ptr_t* ab = (api_ptr_t*)bico;
+
+		ab->bico->setRebuildProperties(interval, initial, grow);
+	
+		API_FP_POST();
+	}
+
 	DLL_API void __stdcall bico_insert_line(void* bico, double* line, double weight)
 	{
 		API_FP_PRE();
