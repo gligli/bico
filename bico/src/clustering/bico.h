@@ -992,8 +992,12 @@ template<typename T> void Bico<T>::setRebuildProperties(size_t interval, double 
 {
   rebuildInterval = interval;
   rebuildPos = 0;
-  optEst_initial = initial;
-  optEst_grow = grow;
+
+  if (!std::isnan(initial))
+      optEst_initial = initial;
+  
+  if (!std::isnan(grow))
+      optEst_grow = grow;
 }
 
 
