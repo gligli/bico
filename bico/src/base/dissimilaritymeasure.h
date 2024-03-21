@@ -22,7 +22,7 @@ public:
 	/**
 	 * @brief Computes the dissimilarity between the two given objects.
 	 */
-	virtual double dissimilarity(T const&, T const&) const = 0;
+	virtual double dissimilarity(T const&, T const&, double& minDist) const = 0;
 };
 
 }

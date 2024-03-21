@@ -20,7 +20,7 @@ public:
 	/**
 	* Computes the squared l2-distance between the two given Point instances.
 	*/
-	virtual double dissimilarity(Point const&, Point const&) const;
+	virtual double dissimilarity(Point const&, Point const&, double& minDist) const;
 };
 
 }

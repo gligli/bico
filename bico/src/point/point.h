@@ -114,6 +114,9 @@ public:
 	 */
 	double squaredL2distance(Point const&) const;
 
+
+	double squaredL2distanceMin(Point const& p, double& minDist) const;
+	
 	/**
 	 * @throw InvalidArgumentException [0] Incompatible dimensions!
 	 */

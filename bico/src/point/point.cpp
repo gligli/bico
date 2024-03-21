@@ -153,13 +153,35 @@ double Point::squaredL2distance(Point const& p) const
 	if(p.dimension() != d)
 		throw InvalidArgumentException(0, "Incompatible dimensions!", "p");
 
-	return euclidean_intrinsic_double(d, p.coordinates._Unchecked_begin(), this->coordinates._Unchecked_begin());
+	const double* p1 = p.coordinates._Unchecked_begin();
+	const double* p2 = this->coordinates._Unchecked_begin();
 
 	double sum = 0;
-	for(unsigned int i=0; i<d; ++i)
+	for (unsigned int i = 0; i < d; ++i)
 	{
-		double delta = p[i]-(*this)[i];
-		sum += delta*delta;
+		double delta = (*p1++) - (*p2++);
+		sum += delta * delta;
+	}
+
+	return sum;
+}
+
+double Point::squaredL2distanceMin(Point const& p, double& minDist) const
+{
+	size_t d = this->dimension();
+	if (p.dimension() != d)
+		throw InvalidArgumentException(0, "Incompatible dimensions!", "p");
+
+	const double * p1 = p.coordinates._Unchecked_begin();
+	const double * p2 = this->coordinates._Unchecked_begin();
+	
+	double sum = 0;
+	for (unsigned int i = 0; i < d; ++i)
+	{
+		double delta = (*p1++) - (*p2++);
+		sum += delta * delta;
+		if (sum > minDist)
+			break;
 	}
 
 	return sum;

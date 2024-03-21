@@ -8,7 +8,7 @@ SquaredL2Metric* SquaredL2Metric::clone() const
 	return new SquaredL2Metric(*this);
 }
 
-double SquaredL2Metric::dissimilarity(Point const& p1, Point const& p2) const
+double SquaredL2Metric::dissimilarity(Point const& p1, Point const& p2, double& minDist) const
 {
-    return p1.squaredL2distance(p2);
+    return p1.squaredL2distanceMin(p2, minDist);
 }

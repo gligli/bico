@@ -202,10 +202,14 @@ private:
                         prm_buf.push_back(&(*it)->first.representative);
                     }
 
+                    double sharedMinDist = std::numeric_limits<double>::infinity();
+
                     #pragma omp parallel for
                     for (intptr_t i = 0; i < prm_buf.size(); ++i)
                     {
-                        dissim_buf[i] = outer.measure->dissimilarity(*prm_buf[i], element);
+                        dissim_buf[i] = outer.measure->dissimilarity(*prm_buf[i], element, sharedMinDist);
+                        if (dissim_buf[i] < sharedMinDist)
+                          sharedMinDist = dissim_buf[i];
                     }
 
                     intptr_t pos = 0;
@@ -237,10 +241,14 @@ private:
                     prm_buf.push_back(&it->first.representative);
                 }
 
+                double sharedMinDist = std::numeric_limits<double>::infinity();
+
                 #pragma omp parallel for
                 for (intptr_t i = 0; i < prm_buf.size(); ++i)
                 {
-                    dissim_buf[i] = outer.measure->dissimilarity(*prm_buf[i], element);
+                    dissim_buf[i] = outer.measure->dissimilarity(*prm_buf[i], element, sharedMinDist);
+                    if (dissim_buf[i] < sharedMinDist)
+                      sharedMinDist = dissim_buf[i];
                 }
 
                 intptr_t pos = 0;
@@ -690,10 +698,14 @@ template<typename T> Bico<T>& Bico<T>::operator<<(T const & element)
         std::vector<double> dissim_buf;
         dissim_buf.reserve(buffer.size());
 
+        double sharedMinDist = minDist;
+        
         #pragma omp parallel for
         for (intptr_t i = 0; i < buffer.size(); ++i)
         {
-            dissim_buf[i] = measure->dissimilarity(buffer[i], element);
+            dissim_buf[i] = measure->dissimilarity(buffer[i], element, sharedMinDist);
+            if (dissim_buf[i] < sharedMinDist)
+              sharedMinDist = dissim_buf[i];
         }
 
         for (intptr_t i = 0; i < buffer.size(); ++i)
@@ -753,11 +765,12 @@ template<typename T> void Bico<T>::insert(BicoNode* node, int level, T const & e
     // Determine nearest clustering feature in current node
     typename BicoNode::FeatureList::iterator nearest(node->nearest(element, level));
 
+    double r = getR(level);
 
     // Construct new clustering feature if element is too far away from
     // nearest clustering feature or insert element into nearest
     if (node->empty() || nearest == node->end()
-            || measure->dissimilarity(nearest->first.representative, element) > getR(level))
+            || measure->dissimilarity(nearest->first.representative, element, r) > r)
     {
         CFREntry<T> feature(1, element, element * element, element);
         typename BicoNode::FeatureList::iterator itele = node->insert(feature);
@@ -851,10 +864,13 @@ template<typename T> void Bico<T>::rebuildFirstLevel(BicoNode* parent, BicoNode*
     for (auto it = child->begin(); it != child->end(); it = nextIt)
     {
         ++nextIt;
+
+        double r = getR(1);
+
         // Determine clustering feature in parent that is nearest to child
         typename BicoNode::FeatureList::iterator nearest(parent->nearest(it->first.representative, 1));
         if (parent->empty() || nearest == parent->end()
-                || measure->dissimilarity(nearest->first.representative, it->first.representative) > getR(1))
+                || measure->dissimilarity(nearest->first.representative, it->first.representative, r) > r)
         {
             // Move it from child to parent
             child->spliceElementTo(it, parent, parent->end());
