@@ -18,6 +18,8 @@
 #include "../exception/invalidruntimeconfigurationexception.h"
 #include "../misc/randomness.h"
 
+#define OMP_SCHEDULE static,256
+
 namespace CluE
 {
 
@@ -204,11 +206,12 @@ private:
 
                     double sharedMinDist = std::numeric_limits<double>::infinity();
 
-                    #pragma omp parallel for
+                    #pragma omp parallel for shared(sharedMinDist) schedule(OMP_SCHEDULE)
                     for (intptr_t i = 0; i < prm_buf.size(); ++i)
                     {
-                        dissim_buf[i] = outer.measure->dissimilarity(*prm_buf[i], element, sharedMinDist);
-                        if (dissim_buf[i] < sharedMinDist)
+                        double localMinDist = sharedMinDist;
+                        dissim_buf[i] = outer.measure->dissimilarity(*prm_buf[i], element, localMinDist);
+                        if (dissim_buf[i] < localMinDist)
                           sharedMinDist = dissim_buf[i];
                     }
 
@@ -243,11 +246,12 @@ private:
 
                 double sharedMinDist = std::numeric_limits<double>::infinity();
 
-                #pragma omp parallel for
+                #pragma omp parallel for shared(sharedMinDist) schedule(OMP_SCHEDULE)
                 for (intptr_t i = 0; i < prm_buf.size(); ++i)
                 {
-                    dissim_buf[i] = outer.measure->dissimilarity(*prm_buf[i], element, sharedMinDist);
-                    if (dissim_buf[i] < sharedMinDist)
+                    double localMinDist = sharedMinDist;
+                    dissim_buf[i] = outer.measure->dissimilarity(*prm_buf[i], element, localMinDist);
+                    if (dissim_buf[i] < localMinDist)
                       sharedMinDist = dissim_buf[i];
                 }
 
@@ -700,11 +704,12 @@ template<typename T> Bico<T>& Bico<T>::operator<<(T const & element)
 
         double sharedMinDist = minDist;
         
-        #pragma omp parallel for
+        #pragma omp parallel for shared(sharedMinDist) schedule(OMP_SCHEDULE)
         for (intptr_t i = 0; i < buffer.size(); ++i)
         {
-            dissim_buf[i] = measure->dissimilarity(buffer[i], element, sharedMinDist);
-            if (dissim_buf[i] < sharedMinDist)
+          double localMinDist = sharedMinDist;
+          dissim_buf[i] = measure->dissimilarity(buffer[i], element, localMinDist);
+          if (dissim_buf[i] < localMinDist)
               sharedMinDist = dissim_buf[i];
         }
 
